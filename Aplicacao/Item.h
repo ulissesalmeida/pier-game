@@ -31,10 +31,20 @@ class CNGLSprite;
 class CLevel;
 class CNGLSound;
 
+#define ITEM_YELLOW_SPR		"Surfaces/spr_ItemYellow.bmp"
+#define ITEM_BLUE_SPR		"Surfaces/spr_ItemBlue.bmp"
+#define ITEM_RED_SPR		"Surfaces/spr_ItemRed.bmp"
+#define ITEM_INVENCIBLE_SPR "Surfaces/spr_ItemInvencible.bmp"
+#define ITEM_TOTAL_SPR		"none" 
+#define ITEM_SHIELD_SPR		"Surfaces/spr_Shield.bmp"
+#define ITEM_PICKUP_WAV		"Sounds/sfx_PickupItem.wav"
+#define ITEM_INVENCIBLE_WAV "Sounds/sfx_PickupInvencible.wav"
+
 //! Classe CItem
 /*!
 	Representa um item do jogo (diamante ou poção). Trata a interação do item com o jogador.
 */
+
 class CItem :	public CNGLObject
 {
 public:
@@ -120,6 +130,8 @@ private:
 		\param NewState: Novo estado do item. pode ser IS_IDLE, IS_RUN, IS_END.
 	*/
 	void ChangeState(CItem::ItemState NewState);
+
+	void UpdateShieldOnPlayer();
 };
 
 #endif

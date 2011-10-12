@@ -428,7 +428,17 @@ void CLevel::OnGame(void)
 	//o laço é feito de trás para frente porque caso um ou mais
 	//itens tenham terminado sua execução, eles podem ser removidos
 	//sem dar problema de índices inválidos no vetor.
-	int iSize = 0;
+
+	int iSize = (int) ListItems.size();
+
+	for(int i=iSize-1; i >= 0; i--){
+		ListItems[i]->Execute();
+		if(ListItems[i]->GetState() == CItem::IS_END){
+			ListItems[i]->Release();
+			delete ListItems[i];
+			ListItems.erase(ListItems.begin()+i);
+		}
+	}
 
 	//23.1.3. 
 	//2. se os itens terminaram, preparar programação de fim de jogo.
@@ -878,4 +888,17 @@ void CLevel::DisableBricks(CNGLFrame Rect)
 void CLevel::CreateItems(void)
 {
 	//18.2.7. criar alguns itens
+	CreateItem(CItem::IT_YELLOW,CNGLVector(200,256));
+	CreateItem(CItem::IT_BLUE,CNGLVector(250,200));
+	CreateItem(CItem::IT_RED,CNGLVector(300,156));
+	CreateItem(CItem::IT_INVENCIBLE,CNGLVector(350,100));
+	CreateItem(CItem::IT_YELLOW,CNGLVector(500,100));
+	CreateItem(CItem::IT_BLUE,CNGLVector(700,120));
+	CreateItem(CItem::IT_RED,CNGLVector(4000,280));
+	CreateItem(CItem::IT_INVENCIBLE,CNGLVector(7060,440));
+	CreateItem(CItem::IT_YELLOW,CNGLVector(6880,420));
+	CreateItem(CItem::IT_BLUE,CNGLVector(6930,420));
+	CreateItem(CItem::IT_RED,CNGLVector(6980,420));
+	CreateItem(CItem::IT_INVENCIBLE,CNGLVector(7030,420));
+
 }

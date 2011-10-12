@@ -85,29 +85,29 @@ bool CItem::Initialize(CItem::ItemType TypePam)
 	{
 		case IT_YELLOW:
 		{
-			FileName = "Surfaces/spr_ItemYellow.bmp";
+			FileName = ITEM_YELLOW_SPR;
 			FrameSize = CNGLVector(30,30);
 			break;
 		}
 		case IT_BLUE:
 		{
-			FileName = "Surfaces/spr_ItemBlue.bmp";
+			FileName = ITEM_BLUE_SPR;
 			FrameSize = CNGLVector(45,45);
 			break;
 		}
 		case IT_RED:
 		{
-			FileName = "Surfaces/spr_ItemRed.bmp";
+			FileName = ITEM_RED_SPR;
 			FrameSize = CNGLVector(60,60);
 			break;
 		}
 		case IT_INVENCIBLE:
 		{
-			FileName = "Surfaces/spr_ItemInvencible.bmp";
+			FileName = ITEM_INVENCIBLE_SPR;
 			FrameSize = CNGLVector(50,70);
 			
 			//criando sprite do escudo, caso o item seja de invencibilidade
-			p_SprShield = pr_Level->p_LayLevel->CreateSprite("Surfaces/spr_Shield.bmp",CNGLVector(100,110));
+			p_SprShield = pr_Level->p_LayLevel->CreateSprite(ITEM_SHIELD_SPR,CNGLVector(100,110));
 			//deixando o escudo invisível, pois ele somente aparecerá quando o jogador pegá-lo
 			p_SprShield->bVisible = false;
 			//adicionando animação do escudo
@@ -121,22 +121,23 @@ bool CItem::Initialize(CItem::ItemType TypePam)
 	
 	//18.2.1. 
 	//1. cria o sprite do item
-
+	p_Sprite = pr_Level->p_LayLevel->CreateSprite(FileName.c_str(),FrameSize);
 	//2. adiciona as animações do item parado e desaparecendo 
-
+	p_Sprite->AddAnimation(4,true,4,0,1,2,1);
+	p_Sprite->AddAnimation(10,false,4,3,4,5,6);
 	//3. ajusta a primeira animação (0) como corrente
-
+	p_Sprite->SetCurrentAnimation(0);
 
 	//4. carregar o som correto de quando o item é pego, de acordo com o tipo
 	if(Type != IT_INVENCIBLE)
 	{
 		// carregando som como efeito sonoro para quando se pega um item.
-
+		p_SndPickup = pr_Level->pr_Main->SoundManager.LoadSound(ITEM_PICKUP_WAV,true);
 	}
 	else
 	{
 		// carregando som como efeito sonoro para quando se pega um item invencibilidade.
-
+		p_SndPickup = pr_Level->pr_Main->SoundManager.LoadSound(ITEM_INVENCIBLE_WAV,true);
 	}
 
 	return true;
@@ -188,24 +189,21 @@ void CItem::ChangeState(CItem::ItemState NewState)
 				{
 					//18.2.3. 
 					//1. muda animação para "explodir" o item
+					if(p_Sprite) p_Sprite->SetCurrentAnimation(1);
 
 					//1. soma pontos ao jogador
-
+					AddPointsToPlayer();
 					
 					//2. tocando som de item pego
-
+					if(p_SndPickup) p_SndPickup->Play(false);
 
 					//3. tratamento especial para o item de invencibilidade
 					if(Type == IT_INVENCIBLE)
 					{
-						//ajusta posição do escudo
-
-						//ajuste da posição do escudo, para ficar em cima do jogador
-
-						//exibe o escudo
+						UpdateShieldOnPlayer();
 
 						//inicializa acumulador 
-
+						AccumInv.Init(&pr_Level->pr_Main->TimeHandler, INVINCIBILITY_TIME);
 					}
 
 					//estado atual recebe novo estado
@@ -220,8 +218,9 @@ void CItem::ChangeState(CItem::ItemState NewState)
 				{
 					//18.2.3.
 					//4. caso o item seja de invencibilidade, o jogador deve ter seu atributo bIvencible em false
-
-
+					if(Type == IT_INVENCIBLE){
+						pr_Level->GetPlayer()->bInvincible = false;
+					}
 					//estado atual recebe novo estado
 					State = NewState;
 					break;
@@ -230,6 +229,17 @@ void CItem::ChangeState(CItem::ItemState NewState)
 			}
 		}
 	}
+}
+
+void CItem::UpdateShieldOnPlayer(){
+	//ajusta posição do escudo
+	p_SprShield->Position = pr_Level->GetPlayer()->p_Sprite->Position;
+
+	//ajuste da posição do escudo, para ficar em cima do jogador
+	p_SprShield->Position.fx -= 15.0f;
+	p_SprShield->Position.fy -=5.0f;
+	//exibe o escudo
+	p_SprShield->bVisible = true;
 }
 
 //---------------------------------------------------------------------------- 
@@ -243,6 +253,9 @@ void CItem::OnIdle(void)
 	//18.2.2. 
 	//se o jogador encostar (colidir) neste item, então deve-se
 	//mudar estado do item para IS_RUN
+	if(p_Sprite->GetFrame().Collide(pr_Level->GetPlayer()->GetFrame())){
+		ChangeState(IS_RUN);
+	}
 
 }
 
@@ -261,6 +274,7 @@ void CItem::OnRun(void)
 	if(Type != IT_INVENCIBLE)
 	{
 		// se terminou animação de item desaparecendo, então mudar de estado.
+		if(p_Sprite->Animations[1]->Ended()) ChangeState(IS_END);
 
 	}
 	//2. se o item for de invencibilidade, deve-se atualizar acumulador e
@@ -268,7 +282,9 @@ void CItem::OnRun(void)
 	//Senão, ajusta posição do escudo em cima do jogador
 	else
 	{
-
+		AccumInv.Update();
+		if(AccumInv.Ended()) ChangeState(IS_END);
+		else UpdateShieldOnPlayer();
 	}
 }
 
@@ -280,7 +296,20 @@ void CItem::OnRun(void)
 void CItem::AddPointsToPlayer(void)
 {
 	//18.2.4. acumular pontos ao jogador de acordo com o item pego
-
+	switch(Type){
+		case IT_BLUE:
+			pr_Level->GetPlayer()->uiPoints += 100; 
+		break;
+		case IT_RED:
+			pr_Level->GetPlayer()->uiPoints += 150; 
+		break;
+		case IT_YELLOW:
+			pr_Level->GetPlayer()->uiPoints += 200; 
+		break;
+		case IT_INVENCIBLE:
+			pr_Level->GetPlayer()->uiPoints += 250; 
+		break;
+	}
 }
 
 //---------------------------------------------------------------------------- 
